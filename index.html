@@ -9,7 +9,7 @@
     h1{font-size:1.7rem} .muted{color:#666} .summary{display:flex;gap:24px;flex-wrap:wrap;margin:20px 0}
     .metric{border:1px solid #ddd;border-radius:12px;padding:14px 18px;min-width:140px}
     .value{font-size:1.5rem;font-weight:700} table{width:100%;border-collapse:collapse;margin-top:18px}
-    th,td{padding:10px;border-bottom:1px solid #ddd;text-align:left}
+    th,td{padding:10px;border-bottom:1px solid #ddd;text-align:left;vertical-align:top}
     @media(max-width:600px){table{font-size:.9rem}th,td{padding:8px 5px}}
   </style>
 </head>
@@ -27,25 +27,31 @@
     <tbody id="rows"></tbody>
   </table>
   <script>
-    fetch('./data/public-performance.json')
-      .then(r => { if(!r.ok) throw new Error('データを取得できません'); return r.json(); })
+    const dataUrl = 'https://raw.githubusercontent.com/hiromagic0001-ux/investment-public/main/data/public-performance.json';
+    fetch(dataUrl + '?v=' + Date.now(), {cache: 'no-store'})
+      .then(r => { if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
       .then(data => {
         const records = Array.isArray(data.records) ? data.records : [];
         const judged = records.filter(x => x.hit === true || x.hit === false);
-        const hits = judged.filter(x => x.hit).length;
-        document.getElementById('count').textContent = judged.length + '件';
+        const hits = judged.filter(x => x.hit === true).length;
+        document.getElementById('count').textContent = records.length + '件';
         document.getElementById('rate').textContent = judged.length ? (hits / judged.length * 100).toFixed(1) + '%' : 'データなし';
         const tbody = document.getElementById('rows');
+        tbody.replaceChildren();
         records.slice().reverse().forEach(x => {
           const tr = document.createElement('tr');
           [x.date || '', x.forecast || '', x.actual || '', x.hit === true ? '的中' : x.hit === false ? '外れ' : '未判定'].forEach(v => {
-            const td = document.createElement('td'); td.textContent = v; tr.appendChild(td);
+            const td = document.createElement('td');
+            td.textContent = v;
+            tr.appendChild(td);
           });
           tbody.appendChild(tr);
         });
         document.getElementById('status').textContent = records.length ? '' : 'まだ公開データはありません。';
       })
-      .catch(() => { document.getElementById('status').textContent = '公開データを読み込めません。'; });
+      .catch(err => {
+        document.getElementById('status').textContent = '公開データを読み込めません：' + err.message;
+      });
   </script>
 </body>
 </html>
